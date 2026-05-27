@@ -1,4 +1,4 @@
-# Gemini Live Realtime Demo
+# PERSONA — Gemini Live Sales Demo
 
 Simple local demo that:
 - captures your webcam video
@@ -36,7 +36,8 @@ http://localhost:3000
 
 Edit these files (no UI fields):
 
-- `prompts/system.txt` — personality and behavior (sent as `systemInstruction`)
+- `prompts/system.txt` — PERSONA personality and sales behavior
+- `prompts/product.txt` — what to sell (pivoted into convo naturally)
 - `prompts/pre-prompt.txt` — opening line sent once after connect
 
 Restart the server after changing prompt files.

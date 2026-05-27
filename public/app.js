@@ -17,6 +17,12 @@ let captureContext = null;
 let micWorklet = null;
 let micSource = null;
 let audioPlayer = null;
+let currentAiLine = null;
+let currentUserLine = null;
+
+function scrollChatToBottom() {
+  logEl.scrollTop = logEl.scrollHeight;
+}
 
 function setPill(state, label) {
   statusPill.className = `status-pill ${state}`;
@@ -29,12 +35,58 @@ function setStatus(text, { live = false, pill = "connecting", pillLabel } = {}) 
   if (pillLabel) setPill(pill, pillLabel);
 }
 
+function toOneLine(text) {
+  return String(text).replace(/\s+/g, " ").trim();
+}
+
+function appendChat(role, rawText) {
+  const text = toOneLine(rawText);
+  if (!text) return;
+
+  if (role === "user") {
+    currentAiLine = null;
+
+    if (currentUserLine) {
+      currentUserLine.querySelector(".msg").textContent = `"${text}"`;
+    } else {
+      const line = document.createElement("div");
+      line.className = "chat-line user";
+      line.innerHTML = `<span class="role">User:</span><span class="msg">"${text}"</span>`;
+      logEl.appendChild(line);
+      currentUserLine = line;
+    }
+  } else if (role === "ai") {
+    currentUserLine = null;
+
+    if (currentAiLine) {
+      currentAiLine.querySelector(".msg").textContent = `"${text}"`;
+    } else {
+      const line = document.createElement("div");
+      line.className = "chat-line ai active";
+      line.innerHTML = `<span class="role">AI:</span><span class="msg">"${text}"</span>`;
+      logEl.appendChild(line);
+      currentAiLine = line;
+    }
+  }
+
+  scrollChatToBottom();
+}
+
 function appendLog(text, type = "system") {
+  if (type === "user") {
+    appendChat("user", text);
+    return;
+  }
+  if (type === "ai") {
+    appendChat("ai", text);
+    return;
+  }
+
   const entry = document.createElement("div");
-  entry.className = `log-entry ${type}`;
+  entry.className = `chat-line ${type}`;
   entry.textContent = text;
   logEl.appendChild(entry);
-  logEl.scrollTop = logEl.scrollHeight;
+  scrollChatToBottom();
 }
 
 function setLink(online) {
@@ -138,15 +190,18 @@ function handleServerMessage(message) {
 
   if (content.interrupted) {
     audioPlayer?.reset();
-    appendLog("Signal interrupted", "system");
+    currentAiLine?.classList.remove("active");
+    currentAiLine = null;
+    currentUserLine = null;
+    return;
   }
 
   if (content.inputTranscription?.text) {
-    appendLog(content.inputTranscription.text, "user");
+    appendChat("user", content.inputTranscription.text);
   }
 
   if (content.outputTranscription?.text) {
-    appendLog(content.outputTranscription.text, "ai");
+    appendChat("ai", content.outputTranscription.text);
   }
 
   if (content.modelTurn?.parts) {
@@ -154,8 +209,8 @@ function handleServerMessage(message) {
       if (part.inlineData?.data) {
         audioPlayer?.playBase64Pcm(part.inlineData.data);
       }
-      if (part.text) {
-        appendLog(part.text, "ai");
+      if (part.text && !content.outputTranscription?.text) {
+        appendChat("ai", part.text);
       }
     }
   }
@@ -164,6 +219,8 @@ function handleServerMessage(message) {
 async function startSession() {
   try {
     logEl.innerHTML = "";
+    currentAiLine = null;
+    currentUserLine = null;
     setPill("connecting", "BOOTING");
     setStatus("Acquiring optic and audio feeds...", { pill: "connecting", pillLabel: "BOOTING" });
     startBtn.disabled = true;
@@ -172,7 +229,7 @@ async function startSession() {
     const instruction =
       typeof systemPrompt === "string" && systemPrompt.trim()
         ? systemPrompt.trim()
-        : "You are a helpful realtime assistant.";
+        : "You are PERSONA, a BGC bro conyo sales AI.";
     const opening =
       typeof prePrompt === "string" ? prePrompt.trim() : "";
 
