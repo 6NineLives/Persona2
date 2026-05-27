@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>J.A.R.V.I.S. — Live Interface</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&family=Share+Tech+Mono&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="scanlines" aria-hidden="true"></div>
+    <div class="grid-bg" aria-hidden="true"></div>
+
+    <div class="hud">
+      <header class="top-bar">
+        <div class="brand">
+          <span class="brand-mark"></span>
+          <div>
+            <h1>J.A.R.V.I.S.</h1>
+            <p class="subtitle">Just A Rather Very Intelligent System</p>
+          </div>
+        </div>
+        <div class="telemetry">
+          <div class="metric">
+            <span class="metric-label">LINK</span>
+            <span id="linkState" class="metric-value">OFFLINE</span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">MODEL</span>
+            <span id="modelName" class="metric-value">—</span>
+          </div>
+          <div id="statusPill" class="status-pill standby">STANDBY</div>
+        </div>
+      </header>
+
+      <main class="core">
+        <section class="visor-wrap">
+          <div id="visorRing" class="visor-ring">
+            <div class="ring ring-outer"></div>
+            <div class="ring ring-mid"></div>
+            <div class="ring ring-inner"></div>
+            <video id="localVideo" autoplay muted playsinline></video>
+            <div class="visor-scan" aria-hidden="true"></div>
+          </div>
+          <p id="statusLine" class="status-line">Awaiting initialization</p>
+          <div class="controls">
+            <button id="startBtn" class="btn btn-primary">
+              <span class="btn-glow"></span>
+              INITIALIZE
+            </button>
+            <button id="stopBtn" class="btn btn-danger" disabled>TERMINATE</button>
+          </div>
+        </section>
+
+        <aside class="comm-panel">
+          <div class="panel-header">
+            <span class="panel-dot"></span>
+            COMMUNICATION LOG
+          </div>
+          <div id="log" class="log"></div>
+        </aside>
+      </main>
+
+      <footer class="footer-bar">
+        <span>OPTIC · AUDIO · NEURAL LINK</span>
+        <span class="hint">Edit prompts in <code>prompts/</code></span>
+      </footer>
+    </div>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,1 @@
+Systems online. Greet the user in one short sentence, confirm vision and audio links are active, then ask what they need.
