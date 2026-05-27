@@ -1,4 +1,4 @@
-# PERSONA — Gemini Live Sales Demo
+# Gemini Live Realtime Demo
 
 Simple local demo that:
 - captures your webcam video
@@ -36,11 +36,12 @@ http://localhost:3000
 
 Edit these files (no UI fields):
 
-- `prompts/system.txt` — PERSONA personality and sales behavior
-- `prompts/product.txt` — what to sell (pivoted into convo naturally)
-- `prompts/pre-prompt.txt` — opening line sent once after connect
+- `prompts/system.txt` — base sales behavior (sent as `systemInstruction`)
+- `prompts/pre-prompt.txt` — neutral opening greeting sent once after connect
+- `data/persona.md` — eight Filipino subculture personas + universal sales rules (persona locks after the customer's first message)
+- `data/archetype_type.md` — extra slang terms used for persona matching
 
-Restart the server after changing prompt files.
+Restart the server after changing prompt or data files.
 
 ## Notes
 

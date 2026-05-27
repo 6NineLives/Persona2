@@ -1,0 +1,25 @@
+/* Optional: paste into your global CSS if Tailwind theme tokens are missing */
+
+:root {
+  --background: 220 20% 98%;
+  --foreground: 220 25% 12%;
+  --card: 0 0% 100%;
+  --border: 220 13% 88%;
+  --primary: 194 100% 42%;
+  --primary-foreground: 220 25% 12%;
+  --destructive: 0 72% 52%;
+  --destructive-foreground: 0 0% 100%;
+  --muted-foreground: 220 10% 42%;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: 0 0% 7%;
+    --foreground: 0 0% 95%;
+    --card: 0 0% 10%;
+    --border: 0 0% 18%;
+    --primary: 194 100% 42%;
+    --primary-foreground: 0 0% 7%;
+    --muted-foreground: 0 0% 55%;
+  }
+}

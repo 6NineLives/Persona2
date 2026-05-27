@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PERSONA — Live Interface</title>
+    <title>J.A.R.V.I.S. — Live Interface</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -16,60 +16,138 @@
     <div class="scanlines" aria-hidden="true"></div>
     <div class="grid-bg" aria-hidden="true"></div>
 
-    <div class="hud">
-      <header class="top-bar">
+    <div class="hud conversation-layout">
+      <header class="conversation-header">
         <div class="brand">
-          <span class="brand-mark"></span>
+          <span class="brand-mark" aria-hidden="true"></span>
           <div>
-            <h1>PERSONA</h1>
-            <p class="subtitle">Realtime Sales · BGC Bro Conyo</p>
+            <h1>J.A.R.V.I.S.</h1>
+            <p class="subtitle">Just A Rather Very Intelligent System</p>
+            <div class="header-metrics">
+              <div class="metric">
+                <span class="metric-label">LINK</span>
+                <span id="linkState" class="metric-value">OFFLINE</span>
+              </div>
+              <div class="metric">
+                <span class="metric-label">MODEL</span>
+                <span id="modelName" class="metric-value">—</span>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="telemetry">
-          <div class="metric">
-            <span class="metric-label">LINK</span>
-            <span id="linkState" class="metric-value">OFFLINE</span>
-          </div>
-          <div class="metric">
-            <span class="metric-label">MODEL</span>
-            <span id="modelName" class="metric-value">—</span>
-          </div>
+        <div class="header-actions">
           <div id="statusPill" class="status-pill standby">STANDBY</div>
+          <button
+            id="stopBtn"
+            class="btn btn-end"
+            type="button"
+            disabled
+            aria-label="End conversation"
+          >
+            End Conversation
+          </button>
         </div>
       </header>
 
-      <main class="core">
-        <section class="visor-wrap">
-          <div id="visorRing" class="visor-ring">
-            <div class="ring ring-outer"></div>
-            <div class="ring ring-mid"></div>
-            <div class="ring ring-inner"></div>
-            <video id="localVideo" autoplay muted playsinline></video>
-            <div class="visor-scan" aria-hidden="true"></div>
+      <div class="conversation-body">
+        <aside class="transcript-sidebar" aria-label="Transcription panel">
+          <div class="transcript-sidebar-header">
+            <div>
+              <h2 class="transcript-title">Transcript</h2>
+              <p class="transcript-subtitle">Live voice turns</p>
+            </div>
           </div>
-          <p id="statusLine" class="status-line">Awaiting initialization</p>
-          <div class="controls">
-            <button id="startBtn" class="btn btn-primary">
-              <span class="btn-glow"></span>
-              INITIALIZE
-            </button>
-            <button id="stopBtn" class="btn btn-danger" disabled>TERMINATE</button>
-          </div>
-        </section>
-
-        <aside class="comm-panel">
-          <div class="panel-header">
-            <span class="panel-dot"></span>
-            CHAT
-          </div>
-          <div id="log" class="log"></div>
+          <div id="log" class="log transcript-messages" role="log"></div>
         </aside>
-      </main>
+
+        <main class="conversation-main">
+          <div class="conversation-stage">
+            <div
+              id="agentStage"
+              class="agent-stage"
+              data-state="idle"
+              role="region"
+              aria-label="AI agent status visualization"
+            >
+              <div class="agent-ring agent-ring-outer" aria-hidden="true"></div>
+              <div class="agent-ring agent-ring-mid" aria-hidden="true"></div>
+              <div class="agent-ring agent-ring-glow" aria-hidden="true"></div>
+              <div class="agent-orb">
+                <span class="agent-orb-label">JARVIS</span>
+                <span id="agentStateLabel" class="agent-state-label">Ready</span>
+              </div>
+
+              <div id="cameraPreview" class="camera-preview hidden" aria-hidden="true">
+                <video id="localVideo" autoplay muted playsinline aria-label="Your camera preview"></video>
+              </div>
+            </div>
+
+            <p id="statusLine" class="status-line">Awaiting initialization</p>
+
+            <div class="controls">
+              <button id="startBtn" class="btn btn-primary" type="button">
+                <span class="btn-glow"></span>
+                INITIALIZE
+              </button>
+            </div>
+          </div>
+        </main>
+      </div>
 
       <footer class="footer-bar">
-        <span>OPTIC · AUDIO · LIVE SALES</span>
-        <span class="hint">Prompts: <code>prompts/system.txt</code> · <code>product.txt</code></span>
+        <span>OPTIC · AUDIO · NEURAL LINK</span>
+        <span class="hint">Edit prompts in <code>prompts/</code></span>
       </footer>
+
+      <aside
+        id="yellowDressSidebar"
+        class="offer-sidebar"
+        aria-label="Recommended product: yellow dress"
+        aria-hidden="true"
+      >
+        <header class="offer-sidebar-header">
+          <div>
+            <p class="offer-tag">Recommended for you</p>
+            <h2 class="offer-title">Sunny Day Yellow Wrap Dress</h2>
+          </div>
+          <button
+            id="yellowDressClose"
+            class="offer-close-btn"
+            type="button"
+            aria-label="Close product suggestion"
+          >
+            ✕
+          </button>
+        </header>
+        <div class="offer-sidebar-body">
+          <div class="offer-image-shell">
+            <img
+              src="/output/704850246_4315650588708485_9096660679281236525_n.jpg"
+              alt="Yellow dress being worn"
+              class="offer-image"
+            />
+          </div>
+          <div class="offer-meta">
+            <p class="offer-price">₱1,890.00</p>
+            <p class="offer-copy">
+              Light, breathable, and perfect for sunny mall days or weekend coffee runs. Adjustable
+              wrap fit and pockets so you can stay comfy while you shop.
+            </p>
+            <button class="btn btn-primary offer-cta" type="button">
+              VIEW DETAILS
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <button
+        id="yellowDressFab"
+        class="offer-fab"
+        type="button"
+        aria-label="Show yellow dress recommendation"
+      >
+        🛍️
+      </button>
     </div>
 
     <script type="module" src="./app.js"></script>
