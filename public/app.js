@@ -1,4 +1,4 @@
-import { GoogleGenAI, Modality } from "https://esm.run/@google/genai";
+import { GoogleGenAI, Modality } from "https://esm.sh/@google/genai@2.6.0";
 
 const statusLine = document.getElementById("statusLine");
 const statusPill = document.getElementById("statusPill");
@@ -14,9 +14,8 @@ let liveSession = null;
 let mediaStream = null;
 let videoInterval = null;
 let captureContext = null;
-let scriptProcessor = null;
+let micWorklet = null;
 let micSource = null;
-let silentGain = null;
 let audioPlayer = null;
 
 function setPill(state, label) {
@@ -170,6 +169,13 @@ async function startSession() {
     startBtn.disabled = true;
 
     const { apiKey, model, systemPrompt, prePrompt } = await getConfig();
+    const instruction =
+      typeof systemPrompt === "string" && systemPrompt.trim()
+        ? systemPrompt.trim()
+        : "You are a helpful realtime assistant.";
+    const opening =
+      typeof prePrompt === "string" ? prePrompt.trim() : "";
+
     modelName.textContent = model.replace("gemini-", "").toUpperCase();
     const ai = new GoogleGenAI({ apiKey });
     audioPlayer = new AudioPlayer();
@@ -204,9 +210,7 @@ async function startSession() {
             prebuiltVoiceConfig: { voiceName: "Aoede" },
           },
         },
-        systemInstruction: {
-          parts: [{ text: systemPrompt }],
-        },
+        systemInstruction: instruction,
       },
       callbacks: {
         onopen: () => {
@@ -241,8 +245,8 @@ async function startSession() {
 
     await opened;
 
-    if (prePrompt) {
-      liveSession.sendRealtimeInput({ text: prePrompt });
+    if (opening) {
+      liveSession.sendRealtimeInput({ text: opening });
     }
 
     const canvas = document.createElement("canvas");
@@ -266,22 +270,16 @@ async function startSession() {
 
     captureContext = new AudioContext();
     await captureContext.resume();
+    await captureContext.audioWorklet.addModule("./audio-processor.js");
 
     micSource = captureContext.createMediaStreamSource(mediaStream);
-    scriptProcessor = captureContext.createScriptProcessor(4096, 1, 1);
-    silentGain = captureContext.createGain();
-    silentGain.gain.value = 0;
+    micWorklet = new AudioWorkletNode(captureContext, "pcm-capture");
+    micSource.connect(micWorklet);
 
-    micSource.connect(scriptProcessor);
-    scriptProcessor.connect(silentGain);
-    silentGain.connect(captureContext.destination);
-
-    scriptProcessor.onaudioprocess = (event) => {
+    micWorklet.port.onmessage = (event) => {
       if (!liveSession) return;
 
-      const inputData = event.inputBuffer.getChannelData(0);
-      const pcm16 = downsampleTo16k(inputData, captureContext.sampleRate);
-
+      const pcm16 = downsampleTo16k(event.data, captureContext.sampleRate);
       liveSession.sendRealtimeInput({
         audio: {
           mimeType: "audio/pcm;rate=16000",
@@ -311,20 +309,15 @@ function cleanup(resetUi = true) {
     videoInterval = null;
   }
 
-  if (scriptProcessor) {
-    scriptProcessor.onaudioprocess = null;
-    scriptProcessor.disconnect();
-    scriptProcessor = null;
+  if (micWorklet) {
+    micWorklet.port.onmessage = null;
+    micWorklet.disconnect();
+    micWorklet = null;
   }
 
   if (micSource) {
     micSource.disconnect();
     micSource = null;
-  }
-
-  if (silentGain) {
-    silentGain.disconnect();
-    silentGain = null;
   }
 
   if (captureContext) {
