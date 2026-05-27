@@ -100,18 +100,18 @@
       </footer>
 
       <aside
-        id="yellowDressSidebar"
+        id="productOfferSidebar"
         class="offer-sidebar"
-        aria-label="Recommended product: yellow dress"
+        aria-label="Product recommendations"
         aria-hidden="true"
       >
         <header class="offer-sidebar-header">
           <div>
-            <p class="offer-tag">Recommended for you</p>
-            <h2 class="offer-title">Sunny Day Yellow Wrap Dress</h2>
+            <p id="productOfferTag" class="offer-tag">Recommended for you</p>
+            <h2 id="productOfferTitle" class="offer-title">—</h2>
           </div>
           <button
-            id="yellowDressClose"
+            id="productOfferClose"
             class="offer-close-btn"
             type="button"
             aria-label="Close product suggestion"
@@ -121,27 +121,29 @@
         </header>
         <div class="offer-sidebar-body">
           <div class="offer-image-shell">
-            <img
-              src="/output/704850246_4315650588708485_9096660679281236525_n.jpg"
-              alt="Yellow dress being worn"
-              class="offer-image"
-            />
+            <img id="productOfferImage" src="" alt="" class="offer-image" />
           </div>
-          <div class="offer-meta">
-            <p class="offer-price">₱1,890.00</p>
-            <p class="offer-copy">
-              Light, breathable, and perfect for sunny mall days or weekend coffee runs. Adjustable
-              wrap fit and pockets so you can stay comfy while you shop.
-            </p>
-            <button class="btn btn-primary offer-cta" type="button">
-              VIEW DETAILS
+
+          <div id="productOfferNav" class="offer-nav hidden" aria-label="Switch product">
+            <button id="productOfferPrev" class="offer-nav-btn" type="button" aria-label="Previous item">
+              ‹
             </button>
+            <div id="productOfferDots" class="offer-dots" role="tablist"></div>
+            <button id="productOfferNext" class="offer-nav-btn" type="button" aria-label="Next item">
+              ›
+            </button>
+          </div>
+
+          <div class="offer-meta">
+            <p id="productOfferPrice" class="offer-price">—</p>
+            <p id="productOfferDescription" class="offer-copy">—</p>
+            <button class="btn btn-primary offer-cta" type="button">VIEW DETAILS</button>
           </div>
         </div>
       </aside>
 
       <button
-        id="yellowDressFab"
+        id="productOfferFab"
         class="offer-fab"
         type="button"
         aria-label="Show yellow dress recommendation"

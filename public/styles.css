@@ -749,6 +749,58 @@ code {
   margin-top: 4px;
 }
 
+.offer-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.offer-nav.hidden {
+  display: none;
+}
+
+.offer-nav-btn {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(15, 23, 42, 0.6);
+  color: var(--cyan);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.offer-nav-btn:hover {
+  background: rgba(34, 211, 238, 0.12);
+}
+
+.offer-dots {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  gap: 8px;
+}
+
+.offer-dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.45);
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.offer-dot.active {
+  background: var(--cyan);
+  transform: scale(1.15);
+}
+
 /* Floating action button for offer */
 .offer-fab {
   position: fixed;

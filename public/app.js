@@ -1,4 +1,9 @@
 import { GoogleGenAI, Modality } from "https://esm.run/@google/genai";
+import {
+  PRODUCT_CATALOG,
+  YELLOW_DRESS_REPLY,
+  detectProductTrigger,
+} from "./products.js";
 
 const statusLine = document.getElementById("statusLine");
 const statusPill = document.getElementById("statusPill");
@@ -7,9 +12,18 @@ const modelName = document.getElementById("modelName");
 const agentStage = document.getElementById("agentStage");
 const agentStateLabel = document.getElementById("agentStateLabel");
 const cameraPreview = document.getElementById("cameraPreview");
-const yellowDressSidebar = document.getElementById("yellowDressSidebar");
-const yellowDressClose = document.getElementById("yellowDressClose");
-const yellowDressFab = document.getElementById("yellowDressFab");
+const productOfferSidebar = document.getElementById("productOfferSidebar");
+const productOfferClose = document.getElementById("productOfferClose");
+const productOfferFab = document.getElementById("productOfferFab");
+const productOfferTag = document.getElementById("productOfferTag");
+const productOfferTitle = document.getElementById("productOfferTitle");
+const productOfferImage = document.getElementById("productOfferImage");
+const productOfferPrice = document.getElementById("productOfferPrice");
+const productOfferDescription = document.getElementById("productOfferDescription");
+const productOfferNav = document.getElementById("productOfferNav");
+const productOfferPrev = document.getElementById("productOfferPrev");
+const productOfferNext = document.getElementById("productOfferNext");
+const productOfferDots = document.getElementById("productOfferDots");
 const logEl = document.getElementById("log");
 const startBtn = document.getElementById("startBtn");
 const stopBtn = document.getElementById("stopBtn");
@@ -32,6 +46,9 @@ let personaMatchers = [];
 let personaPromptsById = {};
 let lastUserMessageText = "";
 let yellowDressOffered = false;
+let suppressAiForYellowDress = false;
+let activeProductCatalogId = null;
+let activeProductIndex = 0;
 
 let liveSession = null;
 let mediaStream = null;
@@ -47,7 +64,7 @@ function setAgentVisualizerState(state) {
   agentStateLabel.textContent = AGENT_STATE_LABELS[state] ?? state;
 }
 
-function setSpeaking(active) {
+function setAgentSpeaking(active) {
   if (speakingTimeout) {
     clearTimeout(speakingTimeout);
     speakingTimeout = null;
@@ -55,18 +72,79 @@ function setSpeaking(active) {
 
   if (active) {
     setAgentVisualizerState("speaking");
-    speakingTimeout = setTimeout(() => {
-      if (liveSession) {
-        setAgentVisualizerState("listening");
-      }
-      speakingTimeout = null;
-    }, 400);
     return;
   }
 
   if (liveSession) {
     setAgentVisualizerState("listening");
   }
+}
+
+function setSpeaking(active) {
+  setAgentSpeaking(active);
+  if (active) {
+    speakingTimeout = setTimeout(() => {
+      if (liveSession) {
+        setAgentVisualizerState("listening");
+      }
+      speakingTimeout = null;
+    }, 400);
+  }
+}
+
+function stopHardcodedTts() {
+  if (typeof window !== "undefined" && window.speechSynthesis) {
+    window.speechSynthesis.cancel();
+  }
+}
+
+function pickFemaleEnglishVoice(voices) {
+  const english = voices.filter((v) => v.lang.toLowerCase().startsWith("en"));
+  if (!english.length) return null;
+
+  const femalePattern =
+    /female|samantha|victoria|zira|karen|moira|fiona|tessa|joanna|amy|emma|ava|jenny|aria|hazel|susan|linda|serena|sara/i;
+  const malePattern =
+    /male|\bdavid\b|\bmark\b|\bjames\b|\bguy\b|\bryan\b|\bfred\b|\bgeorge\b|\bdaniel\b|\balex\b/i;
+
+  return (
+    english.find((v) => v.gender === "female") ||
+    english.find((v) => femalePattern.test(v.name)) ||
+    english.find((v) => !malePattern.test(v.name))
+  );
+}
+
+function speakHardcodedReply(text) {
+  if (!text || typeof window === "undefined" || !window.speechSynthesis) return;
+
+  stopHardcodedTts();
+
+  const startSpeaking = () => {
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1;
+    utterance.pitch = 1.05;
+
+    const femaleVoice = pickFemaleEnglishVoice(window.speechSynthesis.getVoices());
+    if (femaleVoice) {
+      utterance.voice = femaleVoice;
+    }
+
+    utterance.onstart = () => setAgentSpeaking(true);
+    utterance.onend = () => setAgentSpeaking(false);
+    utterance.onerror = () => setAgentSpeaking(false);
+
+    window.speechSynthesis.speak(utterance);
+  };
+
+  if (window.speechSynthesis.getVoices().length > 0) {
+    startSpeaking();
+    return;
+  }
+
+  window.speechSynthesis.onvoiceschanged = () => {
+    window.speechSynthesis.onvoiceschanged = null;
+    startSpeaking();
+  };
 }
 
 function setPill(state, label) {
@@ -89,28 +167,99 @@ function setCameraPreviewVisible(visible) {
   cameraPreview.setAttribute("aria-hidden", visible ? "false" : "true");
 }
 
-function setYellowDressSidebar(open) {
-  if (!yellowDressSidebar) return;
-  yellowDressSidebar.classList.toggle("open", open);
-  yellowDressSidebar.setAttribute("aria-hidden", open ? "false" : "true");
+function setProductSidebarOpen(open) {
+  if (!productOfferSidebar) return;
+  productOfferSidebar.classList.toggle("open", open);
+  productOfferSidebar.setAttribute("aria-hidden", open ? "false" : "true");
 }
 
-function showYellowDressOffer() {
-  if (!yellowDressOffered) {
-    yellowDressOffered = true;
-    appendLog(
-      "You mentioned a yellow dress—great pick for ShopSmart. This Sunny Day Yellow Wrap Dress is ₱1,890: light, breathable, and easy for mall days or weekend hangouts. Want me to check your size, similar styles, or add it to your cart?",
-      "ai",
-    );
+function renderProductItem(catalogId, index) {
+  const catalog = PRODUCT_CATALOG[catalogId];
+  if (!catalog?.items?.length) return;
+
+  const itemCount = catalog.items.length;
+  const safeIndex = ((index % itemCount) + itemCount) % itemCount;
+  const item = catalog.items[safeIndex];
+
+  activeProductCatalogId = catalogId;
+  activeProductIndex = safeIndex;
+
+  if (productOfferTag) productOfferTag.textContent = catalog.tag;
+  if (productOfferTitle) productOfferTitle.textContent = item.title;
+  if (productOfferImage) {
+    productOfferImage.src = item.image;
+    productOfferImage.alt = item.title;
   }
-  setYellowDressSidebar(true);
+  if (productOfferPrice) productOfferPrice.textContent = item.price;
+  if (productOfferDescription) productOfferDescription.textContent = item.description;
+
+  if (productOfferNav) {
+    productOfferNav.classList.toggle("hidden", itemCount <= 1);
+  }
+
+  if (productOfferDots) {
+    productOfferDots.innerHTML = "";
+    catalog.items.forEach((_, dotIndex) => {
+      const dot = document.createElement("button");
+      dot.type = "button";
+      dot.className = `offer-dot${dotIndex === safeIndex ? " active" : ""}`;
+      dot.setAttribute("role", "tab");
+      dot.setAttribute("aria-label", `Item ${dotIndex + 1}`);
+      dot.setAttribute("aria-selected", dotIndex === safeIndex ? "true" : "false");
+      dot.addEventListener("click", () => renderProductItem(catalogId, dotIndex));
+      productOfferDots.appendChild(dot);
+    });
+  }
 }
 
-function maybeTriggerYellowDressFromText(text) {
-  if (!text) return;
-  if (text.toLowerCase().includes("yellow dress")) {
-    showYellowDressOffer();
+function showProductOffer(catalogId, fromUserSpeech = false) {
+  const catalog = PRODUCT_CATALOG[catalogId];
+  if (!catalog) return;
+
+  setProductSidebarOpen(true);
+  renderProductItem(catalogId, 0);
+
+  if (catalogId === "yellow-dress") {
+    if (!yellowDressOffered) {
+      yellowDressOffered = true;
+      finalizeTranscriptTurn();
+      inProgressAi = null;
+      appendLog(YELLOW_DRESS_REPLY, "ai");
+      speakHardcodedReply(YELLOW_DRESS_REPLY);
+    } else if (fromUserSpeech) {
+      finalizeTranscriptTurn();
+      inProgressAi = null;
+      speakHardcodedReply(YELLOW_DRESS_REPLY);
+    }
+
+    if (fromUserSpeech) {
+      suppressAiForYellowDress = true;
+      audioPlayer?.reset();
+    }
   }
+}
+
+function shiftProductItem(delta) {
+  if (!activeProductCatalogId) return;
+  renderProductItem(activeProductCatalogId, activeProductIndex + delta);
+}
+
+function shouldOmitAiTranscript(text) {
+  const normalized = text.trim().toLowerCase();
+  if (!normalized) return true;
+  return (
+    normalized.includes("remains silent") ||
+    normalized.includes("no spoken response") ||
+    normalized.includes("[ai remains silent") ||
+    normalized.includes("do not read aloud") ||
+    normalized.includes("stay completely silent")
+  );
+}
+
+function maybeTriggerProductFromUserSpeech(text) {
+  const catalogId = detectProductTrigger(text);
+  if (!catalogId) return;
+  showProductOffer(catalogId, true);
 }
 
 function setStatus(text, { live = false, pill = "connecting", pillLabel } = {}) {
@@ -163,8 +312,17 @@ function getOrCreateTranscriptBubble(type) {
 }
 
 function updateTranscript(text, type) {
+  if (type === "ai" && (suppressAiForYellowDress || shouldOmitAiTranscript(text))) {
+    return;
+  }
+
   const state = getOrCreateTranscriptBubble(type);
   state.text = mergeTranscriptText(state.text, text);
+  if (type === "ai" && shouldOmitAiTranscript(state.text)) {
+    state.entry.remove();
+    inProgressAi = null;
+    return;
+  }
   state.bubble.textContent = state.text;
   if (type === "user") {
     lastUserMessageText = state.text;
@@ -351,32 +509,35 @@ function handleServerMessage(message) {
   if (content.inputTranscription?.text) {
     inProgressAi = null;
     updateTranscript(content.inputTranscription.text, "user");
-    maybeTriggerYellowDressFromText(content.inputTranscription.text);
+    maybeTriggerProductFromUserSpeech(content.inputTranscription.text);
   }
 
-  if (content.outputTranscription?.text) {
+  if (!suppressAiForYellowDress && content.outputTranscription?.text) {
     maybeApplyPersonaAfterUserTurn();
     inProgressUser = null;
     updateTranscript(content.outputTranscription.text, "ai");
-    maybeTriggerYellowDressFromText(content.outputTranscription.text);
   }
 
   if (content.modelTurn?.parts) {
-    maybeApplyPersonaAfterUserTurn();
+    if (!suppressAiForYellowDress) {
+      maybeApplyPersonaAfterUserTurn();
+    }
     for (const part of content.modelTurn.parts) {
-      if (part.inlineData?.data) {
+      if (part.inlineData?.data && !suppressAiForYellowDress) {
         audioPlayer?.playBase64Pcm(part.inlineData.data);
       }
-      if (part.text) {
+      if (part.text && !suppressAiForYellowDress) {
         inProgressUser = null;
         updateTranscript(part.text, "ai");
-        maybeTriggerYellowDressFromText(part.text);
       }
     }
   }
 
   if (content.turnComplete) {
     maybeApplyPersonaAfterUserTurn();
+    if (suppressAiForYellowDress) {
+      suppressAiForYellowDress = false;
+    }
     finalizeTranscriptTurn();
   }
 }
@@ -397,6 +558,7 @@ async function startSession() {
     personaPromptsById = config.personaPromptsById ?? {};
     personaApplied = false;
     yellowDressOffered = false;
+    suppressAiForYellowDress = false;
     modelName.textContent = model.replace("gemini-", "").toUpperCase();
     const ai = new GoogleGenAI({ apiKey });
     audioPlayer = new AudioPlayer();
@@ -578,9 +740,13 @@ function cleanup(resetUi = true) {
     audioPlayer = null;
   }
 
+  stopHardcodedTts();
+  setAgentSpeaking(false);
+
   personaApplied = false;
   lastUserMessageText = "";
   yellowDressOffered = false;
+  suppressAiForYellowDress = false;
 
   if (resetUi) {
     stopBtn.disabled = true;
@@ -598,15 +764,23 @@ stopBtn.addEventListener("click", () => {
   setStatus("Awaiting initialization");
 });
 
-if (yellowDressClose) {
-  yellowDressClose.addEventListener("click", () => {
-    setYellowDressSidebar(false);
+if (productOfferClose) {
+  productOfferClose.addEventListener("click", () => {
+    setProductSidebarOpen(false);
   });
 }
 
-if (yellowDressFab) {
-  yellowDressFab.addEventListener("click", () => {
-    showYellowDressOffer();
+if (productOfferPrev) {
+  productOfferPrev.addEventListener("click", () => shiftProductItem(-1));
+}
+
+if (productOfferNext) {
+  productOfferNext.addEventListener("click", () => shiftProductItem(1));
+}
+
+if (productOfferFab) {
+  productOfferFab.addEventListener("click", () => {
+    showProductOffer("yellow-dress", false);
   });
 }
 
